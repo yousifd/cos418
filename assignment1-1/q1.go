@@ -2,7 +2,10 @@ package cos418_hw1_1
 
 import (
 	"fmt"
+	"io/ioutil"
+	"regexp"
 	"sort"
+	"strings"
 )
 
 // Find the top K most common words in a text document.
@@ -15,10 +18,32 @@ import (
 // are removed, e.g. "don't" becomes "dont".
 // You should use `checkError` to handle potential errors.
 func topWords(path string, numWords int, charThreshold int) []WordCount {
-	// TODO: implement me
+	wordCounts := make(map[string]int)
+
+	reg, err := regexp.Compile("[^0-9a-zA-Z]+")
+	checkError(err)
+
+	fileStr, err := ioutil.ReadFile(path)
+	checkError(err)
+
+	splitStr := strings.Fields(string(fileStr))
+	for _, str := range splitStr {
+		if len(str) >= charThreshold {
+			tmp := reg.ReplaceAllString(strings.ToLower(str), "")
+			wordCounts[tmp]++
+		}
+	}
 	// HINT: You may find the `strings.Fields` and `strings.ToLower` functions helpful
 	// HINT: To keep only alphanumeric characters, use the regex "[^0-9a-zA-Z]+"
-	return nil
+
+	var res []WordCount
+	for k, v := range wordCounts {
+		res = append(res, WordCount{k, v})
+	}
+
+	sortWordCounts(res)
+
+	return res[:numWords]
 }
 
 // A struct that represents how many times a word is observed in a document
