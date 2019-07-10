@@ -2,6 +2,9 @@ package mapreduce
 
 import (
 	"hash/fnv"
+	"io/ioutil"
+	"encoding/json"
+	"os"
 )
 
 // doMap does the job of a map worker: it reads one of the input files
@@ -14,7 +17,28 @@ func doMap(
 	nReduce int, // the number of reduce task that will be run ("R" in the paper)
 	mapF func(file string, contents string) []KeyValue,
 ) {
-	// TODO:
+
+	fileNames := make([]string, nReduce)
+	encoders := make([]*json.Encoder, nReduce)
+	for count := 0; count < nReduce; count++ {
+		fileNames[count] = reduceName(jobName, mapTaskNumber, count)
+
+		file, err := os.Create(fileNames[count])
+		checkError(err)
+		defer file.Close()
+
+		encoders[count] = json.NewEncoder(file)
+	}
+
+	buf, err := ioutil.ReadFile(inFile)
+	checkError(err)
+	result := mapF(inFile, string(buf))
+
+	for _, kv := range result {
+		idx := ihash(kv.Key) % uint32(nReduce)
+		encoders[idx].Encode(&kv)
+	}
+
 	// You will need to write this function.
 	// You can find the filename for this map task's input to reduce task number
 	// r using reduceName(jobName, mapTaskNumber, r). The ihash function (given

@@ -10,7 +10,11 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	// TODO:
+	// TODO: Read Output from map function files
+	// TODO: Sort KV pairs by Key
+	// TODO: Do Reduce
+	// TODO: Write output to file
+
 	// You will need to write this function.
 	// You can find the intermediate file for this reduce task from map task number
 	// m using reduceName(jobName, m, reduceTaskNumber).
