@@ -4,6 +4,7 @@ import (
 	"os"
 	"encoding/json"
 	"sort"
+	"strconv"
 )
 
 // doReduce does the job of a reduce worker: it reads the intermediate
@@ -18,7 +19,7 @@ func doReduce(
 ) {
 
 	kvs := make(map[string][]string)
-	var keys []string
+	var keys []int
 	for mapCount := 0; mapCount < nMap; mapCount++ {
 		// Read Output from map function file
 		mapFileName := reduceName(jobName, mapCount, reduceTaskNumber)
@@ -31,8 +32,10 @@ func doReduce(
 			err := decoder.Decode(&kv)
 
 			_, inMap := kvs[kv.Key]
-			if !inMap {
-				keys = append(keys, kv.Key)
+			if !inMap && kv.Key != "" {
+				key, err := strconv.Atoi(kv.Key)
+				checkError(err)
+				keys = append(keys, key)
 			}
 			kvs[kv.Key] = append(kvs[kv.Key], kv.Value)
 
@@ -43,7 +46,7 @@ func doReduce(
 	}
 
 	// Sort KV pairs by Key
-	sort.Strings(keys)
+	sort.Ints(keys)
 
 	// Do Reduce
 	// Write output to file
@@ -54,7 +57,8 @@ func doReduce(
 
 	enc := json.NewEncoder(mergeFile)
 	for _, key := range keys {
-		kv := KeyValue{key, reduceF(key, kvs[key])}
+		keyStr := strconv.Itoa(key)
+		kv := KeyValue{keyStr, reduceF(keyStr, kvs[keyStr])}
 		enc.Encode(&kv)
 	}
 
