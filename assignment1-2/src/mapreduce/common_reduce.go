@@ -16,30 +16,31 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	// Read Output from map function file
-	mapFileName := reduceName(jobName, nMap, reduceTaskNumber)
-	mapFile, err := os.Open(mapFileName)
-	checkError(err)
 
 	kvs := make(map[string][]string)
 	var keys []string
-	decoder := json.NewDecoder(mapFile)
-	for {
-		var kv KeyValue
-		err := decoder.Decode(&kv)
+	for mapCount := 0; mapCount < nMap; mapCount++ {
+		// Read Output from map function file
+		mapFileName := reduceName(jobName, mapCount, reduceTaskNumber)
+		mapFile, err := os.Open(mapFileName)
+		checkError(err)
 
-		kvs[kv.Key] = append(kvs[kv.Key], kv.Value)
-		_, inMap := kvs[kv.Key]
-		if !inMap {
-			keys = append(keys, kv.Key)
-		}
+		decoder := json.NewDecoder(mapFile)
+		for {
+			var kv KeyValue
+			err := decoder.Decode(&kv)
 
-		if (err != nil) {
-			break
+			_, inMap := kvs[kv.Key]
+			if !inMap {
+				keys = append(keys, kv.Key)
+			}
+			kvs[kv.Key] = append(kvs[kv.Key], kv.Value)
+
+			if (err != nil) {
+				break
+			}
 		}
 	}
-
-	// debug("kvs: %v\n", kvs)
 
 	// Sort KV pairs by Key
 	sort.Strings(keys)
@@ -47,13 +48,14 @@ func doReduce(
 	// Do Reduce
 	// Write output to file
 	mergeFileName := mergeName(jobName, reduceTaskNumber)
-	mergeFile, err := os.Open(mergeFileName)
+	mergeFile, err := os.Create(mergeFileName)
 	checkError(err)
 	defer mergeFile.Close()
 
 	enc := json.NewEncoder(mergeFile)
 	for _, key := range keys {
-		enc.Encode(KeyValue{key, reduceF(key, kvs[key])})
+		kv := KeyValue{key, reduceF(key, kvs[key])}
+		enc.Encode(&kv)
 	}
 
 	// You will need to write this function.
