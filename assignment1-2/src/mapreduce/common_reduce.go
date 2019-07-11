@@ -1,5 +1,11 @@
 package mapreduce
 
+import (
+	"os"
+	"encoding/json"
+	"sort"
+)
+
 // doReduce does the job of a reduce worker: it reads the intermediate
 // key/value pairs (produced by the map phase) for this task, sorts the
 // intermediate key/value pairs by key, calls the user-defined reduce function
@@ -10,10 +16,45 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	// TODO: Read Output from map function files
-	// TODO: Sort KV pairs by Key
-	// TODO: Do Reduce
-	// TODO: Write output to file
+	// Read Output from map function file
+	mapFileName := reduceName(jobName, nMap, reduceTaskNumber)
+	mapFile, err := os.Open(mapFileName)
+	checkError(err)
+
+	kvs := make(map[string][]string)
+	var keys []string
+	decoder := json.NewDecoder(mapFile)
+	for {
+		var kv KeyValue
+		err := decoder.Decode(&kv)
+
+		kvs[kv.Key] = append(kvs[kv.Key], kv.Value)
+		_, inMap := kvs[kv.Key]
+		if !inMap {
+			keys = append(keys, kv.Key)
+		}
+
+		if (err != nil) {
+			break
+		}
+	}
+
+	// debug("kvs: %v\n", kvs)
+
+	// Sort KV pairs by Key
+	sort.Strings(keys)
+
+	// Do Reduce
+	// Write output to file
+	mergeFileName := mergeName(jobName, reduceTaskNumber)
+	mergeFile, err := os.Open(mergeFileName)
+	checkError(err)
+	defer mergeFile.Close()
+
+	enc := json.NewEncoder(mergeFile)
+	for _, key := range keys {
+		enc.Encode(KeyValue{key, reduceF(key, kvs[key])})
+	}
 
 	// You will need to write this function.
 	// You can find the intermediate file for this reduce task from map task number

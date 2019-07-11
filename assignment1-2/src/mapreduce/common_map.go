@@ -17,17 +17,15 @@ func doMap(
 	nReduce int, // the number of reduce task that will be run ("R" in the paper)
 	mapF func(file string, contents string) []KeyValue,
 ) {
-
-	fileNames := make([]string, nReduce)
 	encoders := make([]*json.Encoder, nReduce)
-	for count := 0; count < nReduce; count++ {
-		fileNames[count] = reduceName(jobName, mapTaskNumber, count)
+	for reduceCount := 0; reduceCount < nReduce; reduceCount++ {
+		fileName := reduceName(jobName, mapTaskNumber, reduceCount)
 
-		file, err := os.Create(fileNames[count])
+		file, err := os.Create(fileName)
 		checkError(err)
 		defer file.Close()
 
-		encoders[count] = json.NewEncoder(file)
+		encoders[reduceCount] = json.NewEncoder(file)
 	}
 
 	buf, err := ioutil.ReadFile(inFile)
