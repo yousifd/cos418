@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"mapreduce"
 	"os"
-	"strings"
 	"strconv"
-	"log"
+	"strings"
+	"unicode"
 )
 
 // The mapping function is called once for each piece of the input.
@@ -14,7 +15,11 @@ import (
 // and the value is the file's contents. The return value should be a slice of
 // key/value pairs, each represented by a mapreduce.KeyValue.
 func mapF(document string, value string) (res []mapreduce.KeyValue) {
-	for _, word := range strings.Fields(value) {
+	f := func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+	}
+
+	for _, word := range strings.FieldsFunc(value, f) {
 		res = append(res, mapreduce.KeyValue{word, "1"})
 	}
 
