@@ -1,9 +1,9 @@
 package mapreduce
 
 import (
+	"encoding/json"
 	"hash/fnv"
 	"io/ioutil"
-	"encoding/json"
 	"os"
 )
 
@@ -32,9 +32,11 @@ func doMap(
 	checkError(err)
 	result := mapF(inFile, string(buf))
 
-	for _, kv := range result {
-		idx := ihash(kv.Key) % uint32(nReduce)
-		encoders[idx].Encode(&kv)
+	if nReduce > 0 {
+		for _, kv := range result {
+			idx := ihash(kv.Key) % uint32(nReduce)
+			encoders[idx].Encode(&kv)
+		}
 	}
 
 	// You will need to write this function.
